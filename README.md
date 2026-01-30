@@ -283,85 +283,6 @@ orion-interview/
 - **Mocking strategy**: External dependencies mocked to ensure fast, isolated tests
 - **Edge cases covered**: Expiration, validation, filtering, sorting
 
-## What Could Be Improved With More Time
-
-### High Priority Enhancements
-
-1. **Persistent Caching**
-   - Use Redis or file-based caching for persistence across sessions
-   - Implement cache warming strategies
-
-2. **Enhanced Error Recovery**
-   - Automatic retry logic with exponential backoff
-   - Better handling of transient network failures
-
-3. **Integration Tests**
-   - End-to-end tests against real GitHub API (with test fixtures)
-   - CLI integration tests using child process execution
-
-4. **Performance Optimizations**
-   - Parallel API requests for multiple repositories
-   - Stream processing for very large result sets
-   - Incremental updates instead of full refreshes
-
-### Medium Priority Features
-
-5. **Web Dashboard**
-   - React-based UI for visual PR browsing
-   - Real-time updates via webhooks
-   - Interactive filtering and sorting
-
-6. **MCP/Agent Integration**
-   - Expose functionality as structured tools for AI agents
-   - Natural language query processing
-   - LLM-powered PR summarization
-
-7. **Advanced Filtering**
-   - Complex query language (e.g., SQL-like syntax)
-   - Regex support for title/body searches
-   - Date range filtering
-
-8. **Export Capabilities**
-   - Export to CSV, Excel, PDF formats
-   - Scheduled reports via email
-   - Custom templates for different stakeholders
-
-### Lower Priority Improvements
-
-9. **Configuration System**
-   - User preferences file (.ghprviewerrc)
-   - Default repository lists
-   - Custom display templates
-
-10. **Monitoring & Analytics**
-    - Usage statistics tracking
-    - Performance metrics
-    - API quota optimization insights
-
-11. **Multi-Repository Support**
-    - Aggregate PRs from multiple repos
-    - Organization-wide PR dashboard
-    - Cross-repository PR dependencies visualization
-
-12. **Additional GitHub Features**
-    - PR reviews and review comments
-    - CI/CD status checks
-    - File changes diff preview
-    - PR timeline visualization
-
-## Performance Considerations
-
-- **API Rate Limits**: GitHub allows 5,000 requests/hour for authenticated users. Caching reduces unnecessary calls.
-- **Memory Usage**: In-memory cache is suitable for typical use. For high-volume scenarios, consider Redis.
-- **Network Efficiency**: Pagination with configurable page size balances completeness with speed.
-
-## Security Considerations
-
-- **Token Storage**: Never commit tokens to version control. Use environment variables or secure secret management.
-- **Input Validation**: All user inputs are validated and sanitized to prevent injection attacks.
-- **Read-Only Access**: Token only needs `public_repo` scope for read access to public repositories.
-- **Error Messages**: Avoid leaking sensitive information in error messages.
-
 ## Testing
 
 The project includes comprehensive unit tests covering:
@@ -377,22 +298,7 @@ npm test
 
 Current coverage exceeds 70% across all metrics (branches, functions, lines, statements).
 
-## Time Spent
-
-- **Planning & Setup**: 20 minutes
-- **Core Implementation**: 60 minutes
-  - GitHub service with pagination: 20 min
-  - Cache service: 10 min
-  - CLI interface: 15 min
-  - Formatting utilities: 15 min
-- **Testing**: 30 minutes
-- **Documentation**: 20 minutes
-- **Total**: ~2.5 hours
 
 ## License
 
 ISC
-
-## Author
-
-Technical interview exercise for Orion startup position.
