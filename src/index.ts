@@ -404,11 +404,3 @@ program
 
 // Parse command line arguments
 program.parse();
-
-// Show help if no arguments provided
-if (!process.argv.slice(2).length) {
-  runInteractiveMode().catch((error) => {
-    console.error(chalk.red('Error:'), error);
-    process.exit(1);
-  });
-}
