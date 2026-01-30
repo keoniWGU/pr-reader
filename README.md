@@ -49,9 +49,27 @@ npm run build
 
 ## Usage
 
-### Basic Command
+### Interactive Mode (Recommended)
 
-Fetch open pull requests from a repository:
+Simply run the CLI without any arguments to enter **interactive mode** with guided prompts:
+
+```bash
+npm start
+```
+
+The interactive mode will walk you through:
+
+- Repository selection (default: vercel/next.js)
+- Display format (compact, detailed, or JSON)
+- PR state (open, closed, or all)
+- Sort options (by date, comments, or title)
+- Optional filters (author, labels, minimum comments)
+
+**Just press Enter to accept defaults!** The interactive mode makes it easy to explore options without memorizing command-line flags.
+
+### Command-Line Mode
+
+For scripting or when you know exactly what you want:
 
 ```bash
 npm start fetch vercel/next.js

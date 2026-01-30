@@ -3,6 +3,7 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import ora from 'ora';
+import inquirer from 'inquirer';
 import * as dotenv from 'dotenv';
 import { GitHubService } from './services/github.service';
 import { CacheService } from './services/cache.service';
@@ -46,12 +47,187 @@ function getGitHubToken(): string {
 }
 
 /**
+ * Interactive mode: Prompt user for options
+ */
+async function runInteractiveMode(): Promise<void> {
+  console.log(chalk.bold.cyan('\n🔍 GitHub PR Viewer - Interactive Mode\n'));
+
+  const answers = await inquirer.prompt([
+    {
+      type: 'input',
+      name: 'repository',
+      message: 'Enter repository (owner/repo):',
+      default: 'vercel/next.js',
+      validate: (input: string) => {
+        if (!Validator.isValidRepoFormat(input)) {
+          return 'Please enter a valid repository format (e.g., owner/repo)';
+        }
+        return true;
+      },
+    },
+    {
+      type: 'list',
+      name: 'format',
+      message: 'Choose display format:',
+      choices: [
+        { name: 'Compact (default)', value: 'compact' },
+        { name: 'Detailed', value: 'detailed' },
+        { name: 'JSON', value: 'json' },
+      ],
+      default: 'compact',
+    },
+    {
+      type: 'list',
+      name: 'state',
+      message: 'PR state:',
+      choices: [
+        { name: 'Open (default)', value: 'open' },
+        { name: 'Closed', value: 'closed' },
+        { name: 'All', value: 'all' },
+      ],
+      default: 'open',
+    },
+    {
+      type: 'list',
+      name: 'sortField',
+      message: 'Sort by:',
+      choices: [
+        { name: 'Created date (default)', value: 'created' },
+        { name: 'Updated date', value: 'updated' },
+        { name: 'Comments', value: 'comments' },
+        { name: 'Title', value: 'title' },
+      ],
+      default: 'created',
+    },
+    {
+      type: 'list',
+      name: 'sortDirection',
+      message: 'Sort direction:',
+      choices: [
+        { name: 'Descending (newest first)', value: 'desc' },
+        { name: 'Ascending (oldest first)', value: 'asc' },
+      ],
+      default: 'desc',
+    },
+    {
+      type: 'confirm',
+      name: 'useFilters',
+      message: 'Would you like to apply filters?',
+      default: false,
+    },
+  ]);
+
+  const filterOptions: FilterOptions = {};
+
+  if (answers.useFilters) {
+    const filterAnswers = await inquirer.prompt([
+      {
+        type: 'input',
+        name: 'author',
+        message: 'Filter by author username (leave empty to skip):',
+      },
+      {
+        type: 'input',
+        name: 'label',
+        message: 'Filter by label (leave empty to skip):',
+      },
+      {
+        type: 'number',
+        name: 'minComments',
+        message: 'Minimum number of comments (0 to skip):',
+        default: 0,
+      },
+    ]);
+
+    if (filterAnswers.author) filterOptions.author = filterAnswers.author;
+    if (filterAnswers.label) filterOptions.label = filterAnswers.label;
+    if (filterAnswers.minComments > 0) filterOptions.minComments = filterAnswers.minComments;
+  }
+
+  const spinner = ora('Initializing...').start();
+
+  try {
+    const repoData = Validator.parseRepo(answers.repository);
+    if (!repoData) {
+      spinner.fail(chalk.red('Invalid repository format'));
+      process.exit(1);
+    }
+
+    const token = getGitHubToken();
+    spinner.text = 'Connecting to GitHub...';
+
+    const githubService = new GitHubService(token);
+
+    spinner.text = 'Verifying credentials...';
+    const isValid = await githubService.verifyToken();
+    if (!isValid) {
+      spinner.fail(chalk.red('Authentication failed. Please check your GitHub token.'));
+      process.exit(1);
+    }
+
+    spinner.text = `Fetching pull requests from ${chalk.cyan(answers.repository)}...`;
+    const { prs, pagination } = await githubService.fetchPullRequests({
+      owner: repoData.owner,
+      repo: repoData.repo,
+      state: answers.state as 'open' | 'closed' | 'all',
+      perPage: 30,
+      maxPages: 5,
+    });
+
+    spinner.succeed(chalk.green(`Fetched ${prs.length} pull request(s)`));
+
+    let filtered = prs;
+
+    if (Object.keys(filterOptions).length > 0) {
+      filtered = Formatter.filterPullRequests(prs, filterOptions);
+      console.log(
+        chalk.gray(`\nFilters applied: ${filtered.length} of ${prs.length} PRs match criteria`)
+      );
+    }
+
+    const sortOptions: SortOptions = {
+      field: answers.sortField,
+      direction: answers.sortDirection,
+    };
+    filtered = Formatter.sortPullRequests(filtered, sortOptions);
+
+    const formatted = Formatter.formatPullRequests(filtered, answers.format as DisplayFormat);
+    console.log(formatted);
+
+    if (pagination.hasNextPage) {
+      console.log(
+        chalk.yellow(
+          `\n⚠ More results available. Use CLI options with --max-pages to fetch additional pages.`
+        )
+      );
+    }
+  } catch (error) {
+    spinner.fail(chalk.red('Error fetching pull requests'));
+    if (error instanceof Error) {
+      console.error(chalk.red(`\n${error.message}\n`));
+    } else {
+      console.error(chalk.red('\nAn unexpected error occurred\n'));
+    }
+    process.exit(1);
+  }
+}
+
+/**
  * Main command: Fetch and display pull requests
  */
 program
   .name('gh-pr-viewer')
   .description('CLI tool to fetch and display GitHub pull requests')
   .version('1.0.0');
+
+// Interactive mode (default when no arguments)
+program
+  .command('interactive', { isDefault: true })
+  .alias('i')
+  .description('Run in interactive mode (default)')
+  .action(async () => {
+    await runInteractiveMode();
+  });
 
 program
   .command('fetch')
@@ -231,5 +407,8 @@ program.parse();
 
 // Show help if no arguments provided
 if (!process.argv.slice(2).length) {
-  program.outputHelp();
+  runInteractiveMode().catch((error) => {
+    console.error(chalk.red('Error:'), error);
+    process.exit(1);
+  });
 }
