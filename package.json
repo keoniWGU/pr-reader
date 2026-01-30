@@ -24,7 +24,7 @@
     "cli",
     "typescript"
   ],
-  "author": "",
+  "author": "Keoni",
   "license": "ISC",
   "dependencies": {
     "@octokit/rest": "^20.0.2",
